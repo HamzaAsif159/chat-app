@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
+import authRoutes from "./routes/AuthRoutes.js";
 
 dotenv.config();
 
@@ -24,6 +25,8 @@ app.use(
 const server = app.listen(port, () => {
   console.log(`Server is running on port: ${port}`);
 });
+
+app.use("/api/auth", authRoutes);
 
 mongoose
   .connect(databaseUrl)

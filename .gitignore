@@ -43,6 +43,7 @@
 .env.development.local
 .env.test.local
 .env.production.local
+.vite/
 
 # Build outputs
 /dist/
