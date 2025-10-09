@@ -1,6 +1,9 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useNavigate } from "react-router-dom";
+
+import { useAppStore } from "../../store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -51,6 +54,8 @@ const signupSchema = z
   });
 
 export default function AuthPage() {
+  const navigate = useNavigate();
+  const { setUserInfo } = useAppStore();
   const [signupLoading, setSignupLoading] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -67,6 +72,13 @@ export default function AuthPage() {
         email: data.email,
         password: data.password,
       });
+
+      console.log(response?.data?.user);
+      if (response?.data?.user?._id) {
+        setUserInfo(response?.data?.user);
+        if (!response?.data?.user?.profileSetup) navigate("/profile");
+        else navigate("/chat");
+      }
       toast.success("Login successful!");
       loginForm.reset();
     } catch (error) {
@@ -97,6 +109,10 @@ export default function AuthPage() {
         firstName,
         lastName,
       });
+      if (response.status === 201 && response?.data?.user?._id) {
+        navigate("/profile");
+      }
+      setUserInfo(response?.data?.user);
       toast.success("Account created successfully!");
       signupForm.reset();
     } catch (error) {

@@ -25,7 +25,7 @@ export const signup = async (req, res) => {
     if (existingUser) {
       return res.status(409).json({ message: "User already exists" });
     }
-ll
+
     const user = await User.create({
       email,
       password,
@@ -35,8 +35,8 @@ ll
     const token = createToken(user._id, email);
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: "None",
+      secure: false,
+      sameSite: "Lax",
       maxAge: 60 * 60 * 1000,
     });
     const { password: _, ...userResponse } = user.toObject();
@@ -64,12 +64,25 @@ export const login = async (req, res) => {
     const token = createToken(user._id, email);
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: "None",
+      secure: false,
+      sameSite: "Lax",
       maxAge: 60 * 60 * 1000,
     });
     const { password: _, ...userResponse } = user.toObject();
     res.status(200).json({ message: "Login successful", user: userResponse });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getUserInfo = async (req, res) => {
+  try {
+    const userData = await User.findById(req.userId);
+    if (!userData) {
+      return res.status(404).json({ message: "User not found" });
+    }
+     return res.status(200).json({ user: userData });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
