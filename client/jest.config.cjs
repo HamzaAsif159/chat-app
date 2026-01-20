@@ -9,6 +9,6 @@ module.exports = {
   },
   transformIgnorePatterns: ["/node_modules/"],
   moduleNameMapper: {
-    "^@/(.*)$": "<rootDir>/src/$1", // <-- This maps @/ to src/
+    "^@/(.*)$": "<rootDir>/src/$1",
   },
 };
