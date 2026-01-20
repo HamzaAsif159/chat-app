@@ -38,6 +38,7 @@ export default function App() {
           setUserInfo(undefined);
         }
       } catch (error) {
+        console.log(error)
         setUserInfo(undefined);
       } finally {
         setLoading(false);
