@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { useNavigate } from "react-router-dom";
 
 import { useAppStore } from "../../store";
+import { useSignup, useLogin } from "@/hooks/useAuth";
+import { loginSchema, signupSchema } from "./auth.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,8 +16,6 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { api } from "../../lib/api";
-import { SIGN_UP_ROUTE, LOGIN_ROUTE } from "./../../utils.js/constant.js";
 import { toast } from "sonner";
 import {
   Form,
@@ -29,34 +28,11 @@ import {
 import { Loader2 } from "lucide-react";
 import { Eye, EyeOff } from "lucide-react";
 
-const loginSchema = z.object({
-  email: z.string().min(1, "Email is required").email("Invalid email"),
-  password: z
-    .string()
-    .min(1, "Password is required")
-    .min(6, "Password must be at least 6 characters"),
-});
-
-const signupSchema = z
-  .object({
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
-    email: z.string().min(1, "Email is required").email("Invalid email"),
-    password: z
-      .string()
-      .min(1, "Password is required")
-      .min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(1, "Confirm password is required"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
-
 export default function AuthPage() {
   const navigate = useNavigate();
   const { setUserInfo } = useAppStore();
-  const [signupLoading, setSignupLoading] = useState(false);
+  const signupMutation = useSignup();
+  const loginMutation = useLogin();
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -67,25 +43,17 @@ export default function AuthPage() {
   });
 
   const onLoginSubmit = async (data) => {
-    try {
-      const response = await api.post(LOGIN_ROUTE, {
-        email: data.email,
-        password: data.password,
-      });
-
-      console.log(response?.data?.user);
-      if (response?.data?.user?._id) {
-        setUserInfo(response?.data?.user);
-        if (!response?.data?.user?.profileSetup) navigate("/profile");
-        else navigate("/chat");
-      }
-      toast.success("Login successful!");
-      loginForm.reset();
-    } catch (error) {
-      const errorMsg =
-        error.response?.data?.message || "Login failed. Please try again.";
-      toast.error(errorMsg);
-    }
+    loginMutation.mutate(data, {
+      onSuccess: (res) => {
+        setUserInfo(res.user);
+        navigate("/chat");
+        toast.success("Login successful!");
+        loginForm.reset();
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.message || "Login Failed");
+      },
+    });
   };
 
   const signupForm = useForm({
@@ -99,29 +67,21 @@ export default function AuthPage() {
     },
   });
 
-  const onSignupSubmit = async (data) => {
-    setSignupLoading(true);
+  const onSignupSubmit = (data) => {
     const { firstName, lastName, email, password } = data;
-    try {
-      const response = await api.post(SIGN_UP_ROUTE, {
-        email,
-        password,
-        firstName,
-        lastName,
-      });
-      if (response.status === 201 && response?.data?.user?._id) {
-        navigate("/profile");
-      }
-      setUserInfo(response?.data?.user);
-      toast.success("Account created successfully!");
-      signupForm.reset();
-    } catch (error) {
-      const errorMsg =
-        error.response?.data?.message || "Signup failed. Please try again.";
-      toast.error(errorMsg);
-    } finally {
-      setSignupLoading(false);
-    }
+    signupMutation.mutate(
+      { firstName, lastName, email, password },
+      {
+        onSuccess: (res) => {
+          setUserInfo(res.user);
+          toast.success("Account created successfully!");
+          signupForm.reset();
+        },
+        onError: (error) => {
+          toast.error(error.response?.data?.message || "Signup failed.");
+        },
+      },
+    );
   };
 
   return (
@@ -202,8 +162,9 @@ export default function AuthPage() {
                   <Button
                     type="submit"
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                    disabled={loginMutation.isPending}
                   >
-                    Login
+                    {loginMutation.isPending ? "Logging in" : "Login"}
                   </Button>
                 </form>
               </Form>
@@ -325,10 +286,10 @@ export default function AuthPage() {
                   />
                   <Button
                     type="submit"
-                    disabled={signupLoading}
+                    disabled={signupMutation.isPending}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
                   >
-                    {signupLoading ? (
+                    {signupMutation.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Creating Account...
