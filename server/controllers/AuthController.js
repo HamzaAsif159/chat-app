@@ -32,17 +32,22 @@ export const signup = async (req, res) => {
       firstName,
       lastName,
     });
+
     const token = createToken(user._id, email);
+
     res.cookie("token", token, {
       httpOnly: true,
       secure: false,
       sameSite: "Lax",
       maxAge: 60 * 60 * 1000,
     });
+
     const { password: _, ...userResponse } = user.toObject();
-    res
-      .status(201)
-      .json({ message: "User created successfully", user: userResponse });
+    res.status(201).json({
+      success: true,
+      user: userResponse,
+      token,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
@@ -61,28 +66,22 @@ export const login = async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
+
     const token = createToken(user._id, email);
+
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
       maxAge: 60 * 60 * 1000,
     });
-    const { password: _, ...userResponse } = user.toObject();
-    res.status(200).json({ message: "Login successful", user: userResponse });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
 
-export const getUserInfo = async (req, res) => {
-  try {
-    const userData = await User.findById(req.userId);
-    if (!userData) {
-      return res.status(404).json({ message: "User not found" });
-    }
-     return res.status(200).json({ user: userData });
+    const { password: _, ...userResponse } = user.toObject();
+    res.status(200).json({
+      success: true,
+      user: userResponse,
+      token,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
