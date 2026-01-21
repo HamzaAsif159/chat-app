@@ -27,11 +27,7 @@ export const updateUserInfo = async (req, res) => {
     if (lastName) user.lastName = lastName;
     if (email) user.email = email;
     if (image) user.image = image;
-
-    if (password) {
-      const salt = await bcrypt.genSalt();
-      user.password = await bcrypt.hash(password, salt);
-    }
+    if (password)  user.password = password; 
 
     await user.save();
 
