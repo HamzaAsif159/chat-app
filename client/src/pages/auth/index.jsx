@@ -43,7 +43,6 @@ export default function AuthPage() {
   });
 
   const onLoginSubmit = async (data) => {
-    console.log(data, "DATA");
     loginMutation.mutate(data, {
       onSuccess: (res) => {
         setUserInfo(res.user);
