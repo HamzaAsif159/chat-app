@@ -5,7 +5,7 @@ import { LOGIN_ROUTE, SIGN_UP_ROUTE } from "@/utils.js/constant";
 export const useSignup = () => {
   return useMutation({
     mutationFn: async (payload) => {
-      const res = await api.post("/api/auth/signup", payload);
+      const res = await api.post(SIGN_UP_ROUTE, payload);
       return res.data;
     },
   });
@@ -14,7 +14,7 @@ export const useSignup = () => {
 export const useLogin = () => {
   return useMutation({
     mutationFn: async (payload) => {
-      const res = await api.post("/api/auth/login", payload);
+      const res = await api.post(LOGIN_ROUTE, payload);
       return res.data;
     },
   });

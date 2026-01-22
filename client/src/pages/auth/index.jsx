@@ -89,11 +89,11 @@ export default function AuthPage() {
       <Card className="w-full max-w-md shadow-2xl rounded-2xl border-none">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-bold text-gray-800">
-            Welcome 👋
+            ByteBot 👋
           </CardTitle>
           <p className="text-center text-sm text-gray-500 mt-1">
             Login or create a new account to continue to{" "}
-            <span className="font-semibold">ChatApp</span>
+            <span className="font-semibold">ByteBot</span>
           </p>
         </CardHeader>
         <CardContent>
