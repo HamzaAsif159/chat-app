@@ -1,83 +1,70 @@
-import { React, useEffect, useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useAppStore } from "./store";
-
-// Import pages
-import Auth from "./pages/auth";
+import React, { useEffect } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import AuthPage from "./pages/auth";
 import Chat from "./pages/chat";
 import Profile from "./pages/profile";
-
-import { api } from "./lib/api";
-import { GET_USER_INFO } from "./utils.js/constant";
+import Navbar from "./components/common/Navbar";
+import { useAppStore } from "./store";
 
 const PrivateRoute = ({ children }) => {
   const { userInfo } = useAppStore();
-  const isAuthenticated = !!userInfo;
-  return isAuthenticated ? children : <Navigate to="/auth" />;
+  return userInfo?._id ? children : <Navigate to="/auth" replace />;
 };
 
 const AuthRoute = ({ children }) => {
   const { userInfo } = useAppStore();
-  const isAuthenticated = !!userInfo;
-  return isAuthenticated ? <Navigate to="/chat" /> : children;
+  return userInfo?._id ? <Navigate to="/chat" replace /> : children;
 };
 
 export default function App() {
-  const { userInfo, setUserInfo } = useAppStore();
-  const [loading, setLoading] = useState(true);
+  const { initializeAuth, loading, userInfo } = useAppStore();
+  const location = useLocation();
 
   useEffect(() => {
-    const getUserInfo = async () => {
-      try {
-        const response = await api.get(GET_USER_INFO, {
-          withCredentials: true,
-        });
-        if (response.status === 200 && response.data.user?._id) {
-          setUserInfo(response.data.user);
-        } else {
-          setUserInfo(undefined);
-        }
-      } catch (error) {
-        console.log(error)
-        setUserInfo(undefined);
-      } finally {
-        setLoading(false);
-      }
-    };
+    initializeAuth();
+  }, []);
 
-    if (!userInfo) getUserInfo();
-    else setLoading(false);
-  }, [userInfo, setUserInfo]);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
+  }
 
-  if (loading) return <div>Loading...</div>;
+  const showNavbar = userInfo?._id && location.pathname !== "/auth";
 
   return (
-    <Routes>
-      <Route
-        path="/auth"
-        element={
-          <AuthRoute>
-            <Auth />
-          </AuthRoute>
-        }
-      />
-      <Route
-        path="/chat"
-        element={
-          <PrivateRoute>
-            <Chat />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <PrivateRoute>
-            <Profile />
-          </PrivateRoute>
-        }
-      />
-      <Route path="*" element={<Auth />} />
-    </Routes>
+    <>
+      {showNavbar && <Navbar />}
+
+      <Routes>
+        <Route
+          path="/auth"
+          element={
+            <AuthRoute>
+              <AuthPage />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <PrivateRoute>
+              <Chat />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <Profile />
+            </PrivateRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/auth" replace />} />
+      </Routes>
+    </>
   );
 }
