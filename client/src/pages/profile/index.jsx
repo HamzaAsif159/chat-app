@@ -49,7 +49,7 @@ export default function ProfilePage() {
   if (!userInfo) return null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6">
+    <div className="flex h-[calc(100vh-64px)] items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6">
       <Card className="w-full max-w-2xl rounded-2xl shadow-2xl border-none">
         <CardHeader className="flex flex-col items-center gap-4 pb-2">
           <UserAvatar

@@ -1,15 +1,17 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { createAuthSlice } from "./slices/authSlice";
+import { createChatSlice } from "./slices/chatSlice";
 
 export const useAppStore = create(
   persist(
     (...a) => ({
       ...createAuthSlice(...a),
+      ...createChatSlice(...a),
     }),
     {
-      name: "auth-storage", // key for localStorage
-      partialize: (state) => ({ userInfo: state.userInfo }), // only persist userInfo
+      name: "auth-storage",
+      partialize: (state) => ({ userInfo: state.userInfo }),
     },
   ),
 );
