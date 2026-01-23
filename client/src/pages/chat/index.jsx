@@ -52,29 +52,14 @@ export default function Chat() {
   };
 
   const handleSend = async () => {
-    if (!prompt.trim() || !selectedChatId) return;
+    if (!prompt.trim() || !selectedChatId || sendMessageMutation.isPending)
+      return;
 
-    const userMessage = { sender: "user", text: prompt };
+    const userMessage = { id: nanoid(), sender: "user", text: prompt };
     addMessageToSelectedChat(userMessage);
-
-    const userPrompt = prompt;
     setPrompt("");
 
-    sendMessageMutation.mutate(
-      { chatId: selectedChatId, message: userPrompt },
-      {
-        onSuccess: (data) => {
-          addMessageToSelectedChat(data.newMessage);
-          refetchChats();
-        },
-        onError: (error) => {
-          addMessageToSelectedChat({
-            sender: "bot",
-            text: "Sorry, something went wrong. Please try again.",
-          });
-        },
-      },
-    );
+    sendMessageMutation.mutate({ chatId: selectedChatId, message: prompt });
   };
 
   useEffect(() => {
@@ -148,24 +133,25 @@ export default function Chat() {
               {selectedChat.messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`max-w-md p-3 rounded-2xl shadow-sm break-words ${
+                  className={`max-w-[70%] p-4 rounded-2xl shadow-sm break-words prose prose-sm max-w-none ${
                     msg.sender === "user"
                       ? "bg-indigo-500 text-white self-end ml-auto"
                       : "bg-white border self-start"
                   }`}
                 >
-                  <p>{msg.text}</p>
+                  <p className="whitespace-pre-wrap">{msg.text}</p>
                 </div>
               ))}
 
-              {sendMessageMutation.isPending && (
-                <div className="self-start bg-white border p-3 rounded-2xl">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                    <span>ByteBot is typing...</span>
+              {sendMessageMutation.isPending &&
+                selectedChat.messages.length === 0 && (
+                  <div className="self-start bg-white border p-3 rounded-2xl">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span>ByteBot is typing...</span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               <div ref={messagesEndRef} />
             </>
@@ -179,7 +165,10 @@ export default function Chat() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) =>
-                e.key === "Enter" && !e.shiftKey && handleSend()
+                e.key === "Enter" &&
+                !e.shiftKey &&
+                !sendMessageMutation.isPending &&
+                handleSend()
               }
               className="flex-1 min-h-[44px]"
               disabled={sendMessageMutation.isPending}

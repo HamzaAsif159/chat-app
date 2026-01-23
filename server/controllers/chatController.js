@@ -8,12 +8,11 @@ const getModel = () => {
     throw new Error("GEMINI_API_KEY is missing. Check your .env file.");
   }
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+  return genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 };
 
 const generateChatTitle = (firstMessage) => {
   const lower = firstMessage.toLowerCase().trim();
-
   if (lower.includes("react")) return "React Questions";
   if (lower.includes("javascript") || lower.includes("js")) return "JavaScript";
   if (lower.includes("node")) return "Node.js";
@@ -21,7 +20,6 @@ const generateChatTitle = (firstMessage) => {
   if (lower.includes("poem") || lower.includes("write")) return "Creative";
   if (lower.includes("help")) return "Help Needed";
   if (lower.includes("explain")) return "Explanation";
-
   return (
     firstMessage.slice(0, 30).trim() + (firstMessage.length > 30 ? "..." : "")
   );
@@ -35,13 +33,24 @@ Assistant:`;
 };
 
 export const sendMessage = async (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("Access-Control-Allow-Origin", process.env.ORIGIN); 
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Headers", "*");
+  
+  res.flushHeaders();
+
   try {
-    const { chatId, message } = req.body;
+    const { chatId, message } = req.query;
     const userId = new mongoose.Types.ObjectId(req.userId);
 
     let chat = await Chat.findOne({ _id: chatId, user: userId });
     if (!chat) {
-      return res.status(404).json({ message: "Chat not found" });
+      res.write(`data: ${JSON.stringify({ error: "Chat not found" })}\n\n`);
+      res.end();
+      return;
     }
 
     const userMessages = chat.messages.filter((m) => m.sender === "user");
@@ -56,6 +65,8 @@ export const sendMessage = async (req, res) => {
     });
     await chat.save();
 
+    res.write(`data: ${JSON.stringify({ type: "started" })}\n\n`);
+
     const model = getModel();
     const context = chat.messages
       .slice(-6)
@@ -63,31 +74,30 @@ export const sendMessage = async (req, res) => {
       .join("\n");
 
     const prompt = getByteBotPrompt(context);
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const botResponse = response.text();
+    const result = await model.generateContentStream(prompt);
 
-    if (!botResponse) {
-      throw new Error("ByteBot returned an empty response.");
+    let fullResponse = "";
+    for await (const chunk of result.stream) {
+      const token = chunk.text();
+      fullResponse += token;
+      res.write(`data: ${JSON.stringify({ type: "token", token })}\n\n`);
     }
 
     chat.messages.push({
       sender: "bot",
-      text: botResponse,
+      text: fullResponse,
       timestamp: new Date(),
     });
     await chat.save();
 
-    res.json({
-      messages: chat.messages.slice(-10),
-      newMessage: { sender: "bot", text: botResponse },
-    });
+    res.write(`data: ${JSON.stringify({ type: "done", fullResponse })}\n\n`);
+    res.end();
   } catch (error) {
-    console.error("❌ ByteBot Error:", error.message);
-    res.status(500).json({
-      message: "ByteBot response failed",
-      error: error.message,
-    });
+    console.error("❌ ByteBot Stream Error:", error.message);
+    res.write(
+      `data: ${JSON.stringify({ error: "Stream failed", details: error.message })}\n\n`,
+    );
+    res.end();
   }
 };
 
