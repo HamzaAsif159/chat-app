@@ -6,6 +6,7 @@ import { verifyToken } from "../middlewares/AuthMiddleware.js";
 const router = express.Router();
 
 router.post("/send", verifyToken, sendMessage);
+router.get("/send", verifyToken, sendMessage);
 router.get("/chats", verifyToken, getChats);
 router.post("/create", verifyToken, createChat);
 
